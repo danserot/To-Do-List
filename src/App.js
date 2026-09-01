@@ -1,14 +1,42 @@
+import { useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
-import Settings from "./pages/Settings";
-import Stats from "./pages/Stats";
+import AppSettings from "./pages/AppSettings";
 import ProtectedRoute from "./components/ProtectedRoute";
+import {
+  getCurrentUser,
+  getOfflineProfile,
+  subscribeOfflineAuthChange,
+} from "./lib/offlineAuth";
+import { settingsRepository } from "./services/settingsRepository";
+import { applyTheme, subscribeSystemTheme } from "./platform/theme";
 import "./styles/App.css";
 
 export default function App() {
+  useEffect(() => {
+    const loadTheme = async () => {
+      const user = await getCurrentUser();
+      if (!user) {
+        applyTheme("light");
+        return;
+      }
+      applyTheme(settingsRepository.get(user, getOfflineProfile()).theme);
+    };
+
+    loadTheme();
+    const unsubscribeSettings = settingsRepository.subscribe(loadTheme);
+    const unsubscribeAuth = subscribeOfflineAuthChange(loadTheme);
+    const unsubscribeSystem = subscribeSystemTheme(loadTheme);
+    return () => {
+      unsubscribeSettings();
+      unsubscribeAuth();
+      unsubscribeSystem();
+    };
+  }, []);
+
   return (
     <Routes>
       <Route path="/" element={<Navigate to="/dashboard" />} />
@@ -37,16 +65,7 @@ export default function App() {
         path="/settings"
         element={
           <ProtectedRoute>
-            <Settings />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/stats"
-        element={
-          <ProtectedRoute>
-            <Stats />
+            <AppSettings />
           </ProtectedRoute>
         }
       />

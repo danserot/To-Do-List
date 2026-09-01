@@ -1,22 +1,28 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import {
+  getCurrentSession,
+  subscribeOfflineAuthChange,
+} from "../lib/offlineAuth";
 
 export default function ProtectedRoute({ children }) {
   const [session, setSession] = useState(undefined);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-    });
+    const loadSession = async () => {
+      setSession(await getCurrentSession());
+    };
 
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session);
-      },
-    );
+    loadSession();
 
-    return () => listener.subscription.unsubscribe();
+    const { data: listener } = supabase.auth.onAuthStateChange(loadSession);
+    const unsubscribeOffline = subscribeOfflineAuthChange(loadSession);
+
+    return () => {
+      listener.subscription.unsubscribe();
+      unsubscribeOffline();
+    };
   }, []);
 
   if (session === undefined) return <div className="centered">Loading...</div>;

@@ -38,35 +38,35 @@ export default function Register() {
   return (
     <div className="authPage">
       <form className="authCard" onSubmit={handleRegister}>
-        <h2>Create account</h2>
+        <h2>Создать аккаунт</h2>
 
         <input
           type="text"
-          placeholder="Full name"
+          placeholder="Имя"
           value={fullName}
           onChange={(e) => setFullName(e.target.value)}
         />
 
         <input
           type="email"
-          placeholder="Email"
+          placeholder="Электронная почта"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
 
         <input
           type="password"
-          placeholder="Password"
+          placeholder="Пароль"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
 
         {errorText && <p className="errorText">{errorText}</p>}
 
-        <button type="submit">Register</button>
+        <button type="submit">Зарегистрироваться</button>
 
         <p>
-          Already have an account? <Link to="/login">Login</Link>
+          Уже есть аккаунт? <Link to="/login">Войти</Link>
         </p>
       </form>
     </div>
