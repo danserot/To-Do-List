@@ -1345,6 +1345,11 @@ textarea:focus-visible {
   cursor: pointer;
 }
 
+.authCard > button:disabled {
+  cursor: wait;
+  opacity: 0.62;
+}
+
 .authCard > .offlineLoginButton {
   border: 1px solid var(--border);
   background: var(--surface);
@@ -1380,6 +1385,7 @@ textarea:focus-visible {
 
 .authCard a { color: var(--accent); font-weight: 650; }
 .errorText { color: var(--danger) !important; }
+.successText { color: var(--green) !important; }
 
 .pageContent {
   width: min(1050px, calc(100% - 298px));

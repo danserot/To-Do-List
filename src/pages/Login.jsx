@@ -1,34 +1,36 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { supabase } from "../lib/supabase";
 import { offlineAccount, signInOffline } from "../lib/offlineAuth";
+import { authRepository } from "../services/authRepository";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorText, setErrorText] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setErrorText("");
+    if (submitting) return;
 
     if (signInOffline(email, password)) {
       navigate("/dashboard");
       return;
     }
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) {
-      setErrorText(error.message);
-      return;
+    setSubmitting(true);
+    try {
+      const result = await authRepository.login({ email, password });
+      if (!result.ok) {
+        setErrorText(result.message);
+        return;
+      }
+      navigate("/dashboard");
+    } finally {
+      setSubmitting(false);
     }
-
-    navigate("/dashboard");
   };
 
   const handleOfflineLogin = () => {
@@ -46,6 +48,7 @@ export default function Login() {
         <input
           type="email"
           placeholder="Электронная почта"
+          autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
@@ -53,17 +56,20 @@ export default function Login() {
         <input
           type="password"
           placeholder="Пароль"
+          autoComplete="current-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
 
         {errorText && <p className="errorText">{errorText}</p>}
 
-        <button type="submit">Войти</button>
+        <button type="submit" disabled={submitting}>
+          {submitting ? "Входим..." : "Войти"}
+        </button>
 
         <div className="authDivider"><span>или</span></div>
 
-        <button className="offlineLoginButton" type="button" onClick={handleOfflineLogin}>
+        <button className="offlineLoginButton" type="button" disabled={submitting} onClick={handleOfflineLogin}>
           Продолжить офлайн
         </button>
 
