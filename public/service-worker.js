@@ -1,4 +1,4 @@
-const CACHE_NAME = "focus-app-shell-v1";
+const CACHE_NAME = "focus-app-shell-v2";
 const APP_SHELL = ["/", "/index.html", "/site.webmanifest"];
 
 self.addEventListener("install", (event) => {
@@ -26,6 +26,10 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(event.request)
         .then((response) => {
+          if (!response.ok) {
+            return caches.match("/index.html");
+          }
+
           const copy = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put("/index.html", copy));
           return response;
@@ -37,13 +41,15 @@ self.addEventListener("fetch", (event) => {
 
   event.respondWith(
     caches.match(event.request).then((cached) => {
-      const network = fetch(event.request).then((response) => {
-        if (response.ok) {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
-        }
-        return response;
-      });
+      const network = fetch(event.request)
+        .then((response) => {
+          if (response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          }
+          return response;
+        })
+        .catch(() => cached);
       return cached || network;
     }),
   );
