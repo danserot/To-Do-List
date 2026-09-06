@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import AppSkeleton from "./AppSkeleton";
 import {
   getCurrentSession,
   subscribeOfflineAuthChange,
@@ -8,10 +9,18 @@ import {
 
 export default function ProtectedRoute({ children }) {
   const [session, setSession] = useState(undefined);
+  const [error, setError] = useState("");
+  const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
     const loadSession = async () => {
-      setSession(await getCurrentSession());
+      setError("");
+      try {
+        setSession(await getCurrentSession());
+      } catch (requestError) {
+        setError(requestError.message || "Проверьте подключение и настройки Supabase.");
+        setSession(undefined);
+      }
     };
 
     loadSession();
@@ -23,9 +32,17 @@ export default function ProtectedRoute({ children }) {
       listener.subscription.unsubscribe();
       unsubscribeOffline();
     };
-  }, []);
+  }, [retryKey]);
 
-  if (session === undefined) return <div className="centered">Loading...</div>;
+  if (session === undefined) {
+    return (
+      <AppSkeleton
+        error={error}
+        message="Проверяем вход и готовим приложение"
+        onRetry={error ? () => setRetryKey((key) => key + 1) : undefined}
+      />
+    );
+  }
   if (!session) return <Navigate to="/login" replace />;
 
   return children;

@@ -1024,6 +1024,109 @@ body.dark .notificationItem.tone-success > span { background: #20382e; }
 
 @keyframes loading { to { background-position: -240% 0; } }
 
+.appSkeleton .sidebar,
+.appSkeleton .topbar,
+.appSkeleton .taskPage {
+  pointer-events: none;
+}
+
+.skeletonBrand,
+.skeletonNav span,
+.skeletonProfile,
+.skeletonSearch,
+.skeletonTopAction,
+.skeletonHeader span,
+.skeletonHeader p,
+.skeletonPanel .analyticsGrid strong,
+.skeletonPanel .analyticsGrid span,
+.skeletonQuickAdd {
+  display: block;
+  border-radius: 7px;
+  background: linear-gradient(90deg, #ffffff 20%, #ededeb 48%, #ffffff 78%);
+  background-size: 240% 100%;
+  animation: loading 1.2s infinite;
+}
+
+body.dark .skeletonBrand,
+body.dark .skeletonNav span,
+body.dark .skeletonProfile,
+body.dark .skeletonSearch,
+body.dark .skeletonTopAction,
+body.dark .skeletonHeader span,
+body.dark .skeletonHeader p,
+body.dark .skeletonPanel .analyticsGrid strong,
+body.dark .skeletonPanel .analyticsGrid span,
+body.dark .skeletonQuickAdd {
+  background: linear-gradient(90deg, #1b1f22 20%, #292e32 48%, #1b1f22 78%);
+  background-size: 240% 100%;
+}
+
+.skeletonBrand {
+  width: 132px;
+  height: 34px;
+  margin: 0 8px 28px;
+}
+
+.skeletonNav {
+  display: grid;
+  gap: 8px;
+  padding: 0 8px;
+}
+
+.skeletonNav span { height: 42px; }
+.skeletonProfile { height: 56px; margin: auto 8px 0; }
+.skeletonTopbar { justify-content: flex-start; }
+.skeletonSearch { width: min(420px, 50vw); height: 38px; }
+.skeletonTopAction { width: 82px; height: 34px; margin-left: auto; }
+.skeletonTopAction + .skeletonTopAction { width: 38px; margin-left: 0; }
+.skeletonHeader { display: grid; gap: 10px; margin-bottom: 26px; }
+.skeletonHeader span { width: 220px; height: 36px; }
+.skeletonHeader p { width: 320px; height: 16px; }
+.skeletonPanel .analyticsGrid strong { width: 42px; height: 30px; }
+.skeletonPanel .analyticsGrid span { width: 86px; height: 12px; }
+.skeletonQuickAdd { height: 60px; margin-bottom: 16px; }
+.taskListSkeleton { margin-top: 0; }
+
+.loadingState {
+  display: grid;
+  gap: 5px;
+  margin: 14px 0 16px;
+  padding: 13px 15px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--muted);
+  box-shadow: 0 4px 14px rgba(35, 35, 32, 0.04);
+}
+
+.loadingState strong {
+  color: var(--text);
+  font-size: 13px;
+}
+
+.loadingState p {
+  margin: 0;
+  font-size: 11px;
+}
+
+.loadingState.hasError {
+  border-color: color-mix(in srgb, var(--danger) 35%, var(--border));
+  background: color-mix(in srgb, var(--danger) 7%, var(--surface));
+}
+
+.loadingState button {
+  width: max-content;
+  min-height: 34px;
+  margin-top: 7px;
+  padding: 0 12px;
+  border-radius: 6px;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 650;
+}
+
 .detailsLayer {
   position: fixed;
   inset: 0;

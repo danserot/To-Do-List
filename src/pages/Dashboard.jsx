@@ -45,6 +45,8 @@ export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadingHint, setLoadingHint] = useState("Загружаем задачи");
+  const [loadError, setLoadError] = useState("");
   const [undoAction, setUndoAction] = useState(null);
   const [appSettings, setAppSettings] = useState(null);
   const [customLists, setCustomLists] = useState([]);
@@ -55,20 +57,47 @@ export default function Dashboard() {
   const shortcutTimer = useRef(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
 
-  useEffect(() => {
-    let active = true;
-    const load = async () => {
+  const loadDashboard = useCallback(async () => {
+    let slowTimer;
+    setLoading(true);
+    setLoadError("");
+    setLoadingHint("Загружаем задачи");
+    slowTimer = window.setTimeout(() => {
+      setLoadingHint("Синхронизация занимает больше обычного");
+    }, 2500);
+
+    try {
       const currentUser = await getCurrentUser();
-      if (!active || !currentUser) return;
+      if (!currentUser) {
+        setLoadError("Сессия не найдена. Войдите снова или используйте офлайн-режим.");
+        return;
+      }
+
       setUser(currentUser);
       setAppSettings(settingsRepository.get(currentUser, getOfflineProfile()));
-      setCustomLists(await listRepository.sync(currentUser));
-      setTasks(await taskRepository.list(currentUser));
+
+      const [listsResult, tasksResult] = await Promise.allSettled([
+        listRepository.sync(currentUser),
+        taskRepository.list(currentUser),
+      ]);
+
+      if (listsResult.status === "fulfilled") setCustomLists(listsResult.value);
+      else setLoadError("Списки не загрузились. Проверьте Supabase или попробуйте еще раз.");
+
+      if (tasksResult.status === "fulfilled") setTasks(tasksResult.value);
+      else setLoadError("Задачи не загрузились. Проверьте Supabase или попробуйте еще раз.");
+    } catch (error) {
+      setLoadError(error.message || "Не удалось загрузить приложение.");
+    } finally {
+      window.clearTimeout(slowTimer);
       setLoading(false);
-    };
-    load();
-    return () => { active = false; window.clearTimeout(undoTimer.current); };
+    }
   }, []);
+
+  useEffect(() => {
+    loadDashboard();
+    return () => window.clearTimeout(undoTimer.current);
+  }, [loadDashboard]);
 
   useEffect(() => {
     const captureInstallPrompt = (event) => {
@@ -254,9 +283,18 @@ export default function Dashboard() {
 
           {view !== TASK_VIEWS.completed && <><QuickAdd defaultDueDate={defaultDueDate} defaultPriority={defaultPriority} listId={currentList?.id || ""} onAdd={handleCreate} /><QuickTasks user={user} onCreate={handleCreate} /></>}
           {selectionMode && <BulkToolbar count={selectedIds.size} onCancel={() => { setSelectionMode(false); setSelectedIds(new Set()); }} onComplete={() => runBulk("complete")} onDelete={() => runBulk("delete")} onSnooze={() => runBulk("snooze")} />}
+          {(loading || loadError) && (
+            <div className={loadError ? "loadingState hasError" : "loadingState"} role={loadError ? "alert" : "status"}>
+              <strong>{loadError ? "Есть проблема с загрузкой" : loadingHint}</strong>
+              <p>
+                {loadError || "Можно уже видеть структуру приложения, данные появятся сразу после синхронизации."}
+              </p>
+              {loadError && <button onClick={loadDashboard}>Повторить</button>}
+            </div>
+          )}
 
           <section className="taskList" aria-live="polite" aria-label="Список задач">
-            {loading ? <div className="loadingList"><span /><span /><span /></div> : visibleTasks.length ? (
+            {loading ? <div className="loadingList taskListSkeleton"><span /><span /><span /><span /></div> : visibleTasks.length ? (
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                 <SortableContext items={visibleTasks.map((task) => task.id)} strategy={verticalListSortingStrategy}>
                   {visibleTasks.map((task) => <SortableTaskItem key={task.id} task={task} disabled={hasSearch || selectionMode} selected={selectedIds.has(task.id)} selectionMode={selectionMode} onDelete={handleDelete} onOpen={() => setSelectedTaskId(task.id)} onPin={() => handleUpdate(task.id, { pinned: !task.pinned }, task.pinned ? "Задача откреплена" : "Задача закреплена")} onSelect={toggleSelected} onSnooze={(option) => handleUpdate(task.id, { due_date: getSnoozeDate(option) }, "Срок задачи изменен")} onToggle={() => handleUpdate(task.id, { completed: !task.completed }, task.completed ? "Задача возвращена" : "Задача выполнена")} />)}
