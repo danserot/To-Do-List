@@ -25,6 +25,15 @@ row-level security and file storage.
 4. Set `REACT_APP_CLOUD_SYNC=true`.
 5. Restart the development server.
 
+For Netlify/Vercel production deploys, add the same values in the hosting
+dashboard environment variables before rebuilding:
+
+```text
+REACT_APP_SUPABASE_URL=https://your-project-ref.supabase.co
+REACT_APP_SUPABASE_ANON_KEY=your-publishable-anon-key
+REACT_APP_CLOUD_SYNC=true
+```
+
 Never put a Supabase service-role key in a React or Expo client. It bypasses
 RLS and must exist only in a trusted server environment.
 

@@ -60,6 +60,10 @@ export default function Profile() {
       setUser(currentUser);
       setSocialProfile(await socialProfileRepository.sync(currentUser));
       setTasks(await taskRepository.list(currentUser));
+      setProfile({
+        full_name: currentUser.user_metadata?.full_name || currentUser.email?.split("@")[0] || "",
+        avatar_url: "",
+      });
 
       if (isOfflineUser(currentUser)) {
         const data = getOfflineProfile();
@@ -71,15 +75,15 @@ export default function Profile() {
       }
 
       const { data } = await supabase
-        .from("profiles")
-        .select("full_name, avatar_url")
-        .eq("id", currentUser.id)
-        .single();
+        .from("focus_profiles")
+        .select("full_name")
+        .eq("user_id", currentUser.id)
+        .maybeSingle();
 
       if (active && data) {
         setProfile({
-          full_name: data.full_name || "",
-          avatar_url: data.avatar_url || "",
+          full_name: data.full_name || currentUser.user_metadata?.full_name || "",
+          avatar_url: "",
         });
       }
     };
@@ -132,8 +136,6 @@ export default function Profile() {
 
     if (isOfflineUser(user)) {
       saveOfflineProfile(cleanProfile);
-    } else {
-      await supabase.from("profiles").update(cleanProfile).eq("id", user.id);
     }
 
     setProfile(cleanProfile);

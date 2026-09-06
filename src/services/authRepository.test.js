@@ -10,6 +10,7 @@ jest.mock("../lib/offlineAuth", () => ({
 }));
 
 jest.mock("../lib/supabase", () => ({
+  isSupabaseConfigured: true,
   supabase: {
     auth: {
       signInWithPassword: jest.fn(),

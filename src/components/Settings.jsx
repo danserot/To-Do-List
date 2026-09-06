@@ -12,7 +12,6 @@ import {
   Sun,
   UserRound,
 } from "lucide-react";
-import { supabase } from "../lib/supabase";
 import {
   getCurrentUser,
   getOfflineProfile,
@@ -112,14 +111,6 @@ export default function Settings({ embedded = false }) {
         language: savedSettings.language,
         theme: savedSettings.theme,
       });
-    } else {
-      await supabase
-        .from("profiles")
-        .update({
-          language: savedSettings.language,
-          theme: savedSettings.theme,
-        })
-        .eq("id", user.id);
     }
 
     setSaving(false);

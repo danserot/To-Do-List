@@ -1,4 +1,4 @@
-import { supabase } from "../lib/supabase";
+import { isSupabaseConfigured, supabase } from "../lib/supabase";
 import { signOutOffline } from "../lib/offlineAuth";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -80,6 +80,12 @@ export const authRepository = {
   async login({ email, password }) {
     const validationError = validateLoginInput({ email, password });
     if (validationError) return { ok: false, message: validationError };
+    if (!isSupabaseConfigured) {
+      return {
+        ok: false,
+        message: "Supabase не настроен. Добавьте REACT_APP_SUPABASE_URL и REACT_APP_SUPABASE_ANON_KEY.",
+      };
+    }
 
     signOutOffline();
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -100,6 +106,12 @@ export const authRepository = {
       confirmPassword,
     });
     if (validationError) return { ok: false, message: validationError };
+    if (!isSupabaseConfigured) {
+      return {
+        ok: false,
+        message: "Supabase не настроен. Добавьте REACT_APP_SUPABASE_URL и REACT_APP_SUPABASE_ANON_KEY.",
+      };
+    }
 
     signOutOffline();
     const cleanEmail = normalizeEmail(email);
