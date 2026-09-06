@@ -1,5 +1,5 @@
 const CACHE_NAME = "focus-app-shell-v1";
-const APP_SHELL = ["/", "/dashboard", "/index.html", "/site.webmanifest"];
+const APP_SHELL = ["/", "/index.html", "/site.webmanifest"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
