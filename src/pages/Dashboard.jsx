@@ -34,6 +34,16 @@ const formatTaskTotal = (count) => {
   return `${count} ${word}`;
 };
 
+const SYNC_TIMEOUT_MS = 4500;
+
+const withTimeout = (promise, message) =>
+  Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      window.setTimeout(() => reject(new Error(message)), SYNC_TIMEOUT_MS);
+    }),
+  ]);
+
 export default function Dashboard() {
   const [tasks, setTasks] = useState([]);
   const [user, setUser] = useState(null);
@@ -45,6 +55,7 @@ export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [loadingHint, setLoadingHint] = useState("Загружаем задачи");
   const [loadError, setLoadError] = useState("");
   const [undoAction, setUndoAction] = useState(null);
@@ -58,13 +69,10 @@ export default function Dashboard() {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
 
   const loadDashboard = useCallback(async () => {
-    let slowTimer;
     setLoading(true);
+    setSyncing(false);
     setLoadError("");
     setLoadingHint("Загружаем задачи");
-    slowTimer = window.setTimeout(() => {
-      setLoadingHint("Синхронизация занимает больше обычного");
-    }, 2500);
 
     try {
       const currentUser = await getCurrentUser();
@@ -75,22 +83,40 @@ export default function Dashboard() {
 
       setUser(currentUser);
       setAppSettings(settingsRepository.get(currentUser, getOfflineProfile()));
+      setCustomLists(listRepository.list(currentUser));
+      setTasks(taskRepository.localList(currentUser));
+      setLoading(false);
+      setSyncing(true);
+      setLoadingHint("Синхронизируем с Supabase");
 
       const [listsResult, tasksResult] = await Promise.allSettled([
-        listRepository.sync(currentUser),
-        taskRepository.list(currentUser),
+        withTimeout(
+          listRepository.sync(currentUser),
+          "Списки не ответили за 4.5 секунды. Показываем локальные данные.",
+        ),
+        withTimeout(
+          taskRepository.list(currentUser),
+          "Задачи не ответили за 4.5 секунды. Показываем локальные данные.",
+        ),
       ]);
 
       if (listsResult.status === "fulfilled") setCustomLists(listsResult.value);
-      else setLoadError("Списки не загрузились. Проверьте Supabase или попробуйте еще раз.");
+      else {
+        console.warn("[Focus] Supabase lists sync failed", listsResult.reason);
+        setLoadError(listsResult.reason?.message || "Списки не загрузились. Проверьте Supabase или попробуйте еще раз.");
+      }
 
       if (tasksResult.status === "fulfilled") setTasks(tasksResult.value);
-      else setLoadError("Задачи не загрузились. Проверьте Supabase или попробуйте еще раз.");
+      else {
+        console.warn("[Focus] Supabase tasks sync failed", tasksResult.reason);
+        setLoadError(tasksResult.reason?.message || "Задачи не загрузились. Проверьте Supabase или попробуйте еще раз.");
+      }
     } catch (error) {
+      console.warn("[Focus] Dashboard bootstrap failed", error);
       setLoadError(error.message || "Не удалось загрузить приложение.");
     } finally {
-      window.clearTimeout(slowTimer);
       setLoading(false);
+      setSyncing(false);
     }
   }, []);
 
@@ -283,11 +309,11 @@ export default function Dashboard() {
 
           {view !== TASK_VIEWS.completed && <><QuickAdd defaultDueDate={defaultDueDate} defaultPriority={defaultPriority} listId={currentList?.id || ""} onAdd={handleCreate} /><QuickTasks user={user} onCreate={handleCreate} /></>}
           {selectionMode && <BulkToolbar count={selectedIds.size} onCancel={() => { setSelectionMode(false); setSelectedIds(new Set()); }} onComplete={() => runBulk("complete")} onDelete={() => runBulk("delete")} onSnooze={() => runBulk("snooze")} />}
-          {(loading || loadError) && (
+          {(loading || syncing || loadError) && (
             <div className={loadError ? "loadingState hasError" : "loadingState"} role={loadError ? "alert" : "status"}>
-              <strong>{loadError ? "Есть проблема с загрузкой" : loadingHint}</strong>
+              <strong>{loadError ? "Есть проблема с БД" : loadingHint}</strong>
               <p>
-                {loadError || "Можно уже видеть структуру приложения, данные появятся сразу после синхронизации."}
+                {loadError || (loading ? "Готовим локальный кэш." : "Сайт уже доступен, обновляем только данные из базы.")}
               </p>
               {loadError && <button onClick={loadDashboard}>Повторить</button>}
             </div>

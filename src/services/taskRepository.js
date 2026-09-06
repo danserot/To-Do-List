@@ -123,6 +123,10 @@ const flushCloudDeletes = async (user) => {
 };
 
 export const taskRepository = {
+  localList(user) {
+    return readTasks(user);
+  },
+
   async list(user) {
     const localTasks = readTasks(user);
     if (isOfflineUser(user)) return localTasks;
