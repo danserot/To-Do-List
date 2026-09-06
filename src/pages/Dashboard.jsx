@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { CheckSquare2, Menu, Plus, Search, X } from "lucide-react";
+import { CheckSquare2, Menu, Plus, Search, Smartphone, X } from "lucide-react";
 import BulkToolbar from "../components/BulkToolbar";
 import CommandPalette from "../components/CommandPalette";
 import NotificationCenter from "../components/NotificationCenter";
@@ -13,6 +13,7 @@ import SortableTaskItem from "../components/SortableTaskItem";
 import SyncIndicator from "../components/SyncIndicator";
 import TaskDetails from "../components/TaskDetails";
 import { getCurrentUser, getOfflineProfile } from "../lib/offlineAuth";
+import { getTaskAnalytics } from "../domain/analytics";
 import { getSnoozeDate, getTaskCounts, getViewTasks, TASK_VIEWS, toDateKey } from "../domain/tasks";
 import { listRepository } from "../services/listRepository";
 import { settingsRepository } from "../services/settingsRepository";
@@ -47,6 +48,7 @@ export default function Dashboard() {
   const [undoAction, setUndoAction] = useState(null);
   const [appSettings, setAppSettings] = useState(null);
   const [customLists, setCustomLists] = useState([]);
+  const [installPrompt, setInstallPrompt] = useState(null);
   const undoTimer = useRef(null);
   const searchRef = useRef(null);
   const shortcutPrefix = useRef("");
@@ -66,6 +68,15 @@ export default function Dashboard() {
     };
     load();
     return () => { active = false; window.clearTimeout(undoTimer.current); };
+  }, []);
+
+  useEffect(() => {
+    const captureInstallPrompt = (event) => {
+      event.preventDefault();
+      setInstallPrompt(event);
+    };
+    window.addEventListener("beforeinstallprompt", captureInstallPrompt);
+    return () => window.removeEventListener("beforeinstallprompt", captureInstallPrompt);
   }, []);
 
   useEffect(() => {
@@ -116,6 +127,7 @@ export default function Dashboard() {
     return base;
   }, [customLists, tasks]);
   const selectedTask = tasks.find((task) => task.id === selectedTaskId) || null;
+  const analytics = useMemo(() => getTaskAnalytics(tasks), [tasks]);
   const currentList = view.startsWith("list:") ? customLists.find((list) => list.id === view.slice(5)) : null;
   const currentCopy = currentList ? { title: currentList.name, subtitle: "Ваш пользовательский список" } : viewCopy[view];
   const hasSearch = Boolean(search.trim());
@@ -159,6 +171,12 @@ export default function Dashboard() {
     await handleCreate({ text, dueDate: defaultDueDate, priority: defaultPriority, listId: currentList?.id || "" });
     setSearch("");
     if (view === TASK_VIEWS.completed) setView(TASK_VIEWS.inbox);
+  };
+
+  const installApp = async () => {
+    if (!installPrompt) return;
+    await installPrompt.prompt();
+    setInstallPrompt(null);
   };
 
   const handleDragEnd = async ({ active, over }) => {
@@ -216,6 +234,7 @@ export default function Dashboard() {
           <button className="iconButton menuButton" aria-label="Открыть меню" onClick={() => setSidebarOpen(true)}><Menu size={21} /></button>
           <div className="searchBox"><Search size={18} /><input ref={searchRef} aria-label="Поиск задач" placeholder="Поиск" value={search} onChange={(event) => setSearch(event.target.value)} />{search && <button aria-label="Очистить поиск" onClick={() => setSearch("")}><X size={16} /></button>}</div>
           <button className="commandButton" onClick={() => setCommandOpen(true)} title="Командная панель"><span>Команды</span><kbd>Ctrl K</kbd></button>
+          {installPrompt && <button className="topbarIconButton" aria-label="Установить приложение" title="Установить приложение" onClick={installApp}><Smartphone size={18} /></button>}
           <SyncIndicator user={user} />
           <NotificationCenter tasks={tasks} settings={appSettings} />
           <div className="topbarDate">{new Intl.DateTimeFormat("ru-RU", { weekday: "short", day: "numeric", month: "long" }).format(new Date())}</div>
@@ -223,6 +242,15 @@ export default function Dashboard() {
 
         <div className="taskPage">
           <div className="taskPageHeader"><div><h1>{currentCopy.title}</h1><p>{currentCopy.subtitle}</p></div><div className="pageHeaderActions"><button className={selectionMode ? "selectionToggle active" : "selectionToggle"} aria-pressed={selectionMode} onClick={() => { setSelectionMode((value) => !value); setSelectedIds(new Set()); }}><CheckSquare2 size={17} /><span>Выбрать</span></button><span className="taskCountBadge">{visibleTasks.length}</span></div></div>
+
+          <section className="productivityPanel" aria-label="Аналитика и данные">
+            <div className="analyticsGrid">
+              <div><strong>{analytics.streak}</strong><span>дней streak</span></div>
+              <div><strong>{analytics.completedThisWeek}</strong><span>готово за 7 дней</span></div>
+              <div><strong>{analytics.dueToday}</strong><span>на сегодня</span></div>
+              <div><strong>{analytics.overdue}</strong><span>просрочено</span></div>
+            </div>
+          </section>
 
           {view !== TASK_VIEWS.completed && <><QuickAdd defaultDueDate={defaultDueDate} defaultPriority={defaultPriority} listId={currentList?.id || ""} onAdd={handleCreate} /><QuickTasks user={user} onCreate={handleCreate} /></>}
           {selectionMode && <BulkToolbar count={selectedIds.size} onCancel={() => { setSelectionMode(false); setSelectedIds(new Set()); }} onComplete={() => runBulk("complete")} onDelete={() => runBulk("delete")} onSnooze={() => runBulk("snooze")} />}

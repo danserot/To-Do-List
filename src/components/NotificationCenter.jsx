@@ -1,9 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, Bell, CalendarCheck, CheckCircle2, Flag, ListTodo, X } from "lucide-react";
 import { toDateKey } from "../domain/tasks";
+import {
+  getNotificationPermission,
+  requestNotificationPermission,
+  sendDueTaskReminders,
+} from "../services/reminderService";
 
 export default function NotificationCenter({ tasks, settings }) {
   const [open, setOpen] = useState(false);
+  const [permission, setPermission] = useState(getNotificationPermission());
   const centerRef = useRef(null);
 
   useEffect(() => {
@@ -13,6 +19,10 @@ export default function NotificationCenter({ tasks, settings }) {
     document.addEventListener("mousedown", closeOutside);
     return () => document.removeEventListener("mousedown", closeOutside);
   }, []);
+
+  useEffect(() => {
+    sendDueTaskReminders(tasks, settings);
+  }, [settings, tasks]);
 
   const notifications = useMemo(() => {
     if (!settings) return [];
@@ -52,6 +62,15 @@ export default function NotificationCenter({ tasks, settings }) {
       {open && (
         <div className="notificationPanel" role="dialog" aria-label="Центр уведомлений">
           <header><div><h2>Уведомления</h2><span>{notifications.length ? `${notifications.length} новых` : "Новых нет"}</span></div><button className="iconButton" aria-label="Закрыть" onClick={() => setOpen(false)}><X size={18} /></button></header>
+          {permission === "default" && (
+            <button
+              className="notificationPermission"
+              onClick={async () => setPermission(await requestNotificationPermission())}
+            >
+              Включить системные напоминания
+            </button>
+          )}
+          {permission === "denied" && <p className="notificationHint">Разрешите уведомления в настройках браузера.</p>}
           <div className="notificationList">
             {notifications.length ? notifications.map(({ id, icon: Icon, tone, title, text }) => (
               <div className={`notificationItem tone-${tone}`} key={id}>

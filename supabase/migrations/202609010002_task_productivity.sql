@@ -1,6 +1,8 @@
 alter table public.focus_tasks add column if not exists due_time time;
 alter table public.focus_tasks add column if not exists recurrence text not null default 'none';
 alter table public.focus_tasks add column if not exists list_id text;
+alter table public.focus_tasks add column if not exists tags text[] not null default array[]::text[];
+alter table public.focus_tasks add column if not exists completed_at timestamptz;
 alter table public.focus_tasks add column if not exists subtasks jsonb not null default '[]'::jsonb;
 alter table public.focus_tasks add column if not exists pinned boolean not null default false;
 alter table public.focus_tasks add column if not exists position bigint not null default 0;

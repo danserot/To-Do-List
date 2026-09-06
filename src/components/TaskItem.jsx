@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CalendarDays, CheckSquare2, ChevronRight, Clock3, Flag, GripVertical, Pin, PinOff, Repeat2, Trash2 } from "lucide-react";
+import { CalendarDays, CheckSquare2, ChevronRight, Clock3, Flag, GripVertical, Hash, Pin, PinOff, Repeat2, Trash2 } from "lucide-react";
 import { formatTaskDate, toDateKey } from "../domain/tasks";
 
 export default function TaskItem({ task, selected = false, selectionMode = false, dragDisabled = false, dragHandleProps = {}, onDelete, onOpen, onPin, onSelect, onSnooze, onToggle }) {
@@ -19,6 +19,7 @@ export default function TaskItem({ task, selected = false, selectionMode = false
           {task.due_date && <span className={isOverdue ? "overdue" : ""}><CalendarDays size={14} />{formatTaskDate(task.due_date)}{task.due_time && `, ${task.due_time}`}</span>}
           {priorityLabel && <span><Flag size={14} />{priorityLabel}</span>}
           {task.recurrence !== "none" && <span><Repeat2 size={14} />Повторяется</span>}
+          {task.tags.map((tag) => <span className="taskTag" key={tag}><Hash size={13} />{tag}</span>)}
           {task.subtasks.length > 0 && <span><CheckSquare2 size={14} />{completedSubtasks}/{task.subtasks.length}</span>}
           {task.notes && <span className="notesPreview">{task.notes}</span>}
         </span>

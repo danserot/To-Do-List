@@ -25,7 +25,7 @@ export const cloudRepository = {
     return throwOnError(
       await supabase
         .from("focus_tasks")
-        .select("id, client_id, text, notes, completed, due_date, due_time, priority, recurrence, list_id, subtasks, pinned, position, created_at, updated_at")
+        .select("id, client_id, text, notes, completed, completed_at, due_date, due_time, priority, recurrence, list_id, tags, subtasks, pinned, position, created_at, updated_at")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false }),
     );
@@ -43,11 +43,13 @@ export const cloudRepository = {
             text: task.text,
             notes: task.notes,
             completed: task.completed,
+            completed_at: task.completed_at || null,
             due_date: toNullableDate(task.due_date),
             due_time: task.due_time || null,
             priority: task.priority,
             recurrence: task.recurrence,
             list_id: task.list_id || null,
+            tags: task.tags,
             subtasks: task.subtasks,
             pinned: task.pinned,
             position: task.position,

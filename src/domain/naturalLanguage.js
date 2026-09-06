@@ -2,14 +2,20 @@ import { ru } from "chrono-node";
 import { toDateKey } from "./tasks";
 
 const recurrencePatterns = [
-  { pattern: /\bкажд(?:ый|ое)\s+день\b/i, value: "daily" },
-  { pattern: /\bпо\s+будням\b/i, value: "weekdays" },
-  { pattern: /\bкаждую\s+недел(?:ю|и)\b/i, value: "weekly" },
+  { pattern: /(^|\s)кажд(?:ый|ое)\s+день(?=\s|$)/iu, value: "daily" },
+  { pattern: /(^|\s)по\s+будням(?=\s|$)/iu, value: "weekdays" },
+  { pattern: /(^|\s)каждую\s+недел(?:ю|и)(?=\s|$)/iu, value: "weekly" },
 ];
 
 export const parseNaturalTaskInput = (value, referenceDate = new Date()) => {
   let text = String(value || "").trim();
   let recurrence = "none";
+  const tags = [];
+
+  text = text.replace(/(^|\s)#([\p{L}\p{N}_-]{1,24})/gu, (match, prefix, tag) => {
+    tags.push(tag);
+    return prefix;
+  });
 
   recurrencePatterns.forEach(({ pattern, value: recurrenceValue }) => {
     if (pattern.test(text)) {
@@ -25,6 +31,7 @@ export const parseNaturalTaskInput = (value, referenceDate = new Date()) => {
       dueDate: recurrence === "none" ? "" : toDateKey(referenceDate),
       dueTime: "",
       recurrence,
+      tags,
     };
   }
 
@@ -39,5 +46,6 @@ export const parseNaturalTaskInput = (value, referenceDate = new Date()) => {
       ? `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`
       : "",
     recurrence,
+    tags,
   };
 };

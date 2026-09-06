@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AlertCircle, CalendarDays, Clock3, Flag, Plus, Repeat2 } from "lucide-react";
+import { AlertCircle, CalendarDays, Clock3, Flag, Hash, Plus, Repeat2 } from "lucide-react";
 import { parseNaturalTaskInput } from "../domain/naturalLanguage";
 
 export default function QuickAdd({
@@ -61,6 +61,7 @@ export default function QuickAdd({
         dueDate: parsedInput.dueDate || dueDate,
         dueTime: parsedInput.dueTime,
         recurrence: parsedInput.recurrence,
+        tags: parsedInput.tags,
         priority,
         listId,
       });
@@ -134,11 +135,12 @@ export default function QuickAdd({
         </button>
       </span>
 
-      {text.trim() && (parsedInput.dueDate || parsedInput.dueTime || parsedInput.recurrence !== "none") && (
+      {text.trim() && (parsedInput.dueDate || parsedInput.dueTime || parsedInput.recurrence !== "none" || parsedInput.tags.length > 0) && (
         <div className="naturalPreview" role="status">
           {parsedInput.dueDate && <span><CalendarDays size={13} />{parsedInput.dueDate}</span>}
           {parsedInput.dueTime && <span><Clock3 size={13} />{parsedInput.dueTime}</span>}
           {parsedInput.recurrence !== "none" && <span><Repeat2 size={13} />Повтор</span>}
+          {parsedInput.tags.map((tag) => <span key={tag}><Hash size={13} />{tag}</span>)}
         </div>
       )}
 

@@ -72,6 +72,8 @@ const mergeRemoteTasks = (localTasks, remoteTasks) => {
       due_date: local?.due_date || "",
       priority: local?.priority || "none",
       notes: local?.notes || "",
+      tags: local?.tags || [],
+      completed_at: local?.completed_at || "",
     });
   });
 
@@ -196,9 +198,16 @@ export const taskRepository = {
   async update(user, id, changes) {
     const updatedAt = new Date().toISOString();
     const previousTask = readTasks(user).find((task) => task.id === id);
+    const normalizedChanges = { ...changes };
+    if (changes.completed === true && !previousTask?.completed) {
+      normalizedChanges.completed_at = updatedAt;
+    }
+    if (changes.completed === false) {
+      normalizedChanges.completed_at = "";
+    }
     let tasks = readTasks(user).map((task) =>
       task.id === id
-        ? normalizeTask({ ...task, ...changes, updated_at: updatedAt })
+        ? normalizeTask({ ...task, ...normalizedChanges, updated_at: updatedAt })
         : task,
     );
 
@@ -220,6 +229,7 @@ export const taskRepository = {
           priority: previousTask.priority,
           recurrence: previousTask.recurrence,
           listId: previousTask.list_id,
+          tags: previousTask.tags,
         }),
         notes: previousTask.notes,
         subtasks: previousTask.subtasks.map((subtask) => ({

@@ -12,6 +12,17 @@ export const RECURRENCES = ["none", "daily", "weekdays", "weekly"];
 const createId = () =>
   `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 
+export const normalizeTag = (tag) =>
+  String(tag || "")
+    .trim()
+    .replace(/^#/, "")
+    .toLocaleLowerCase("ru")
+    .replace(/[^\p{L}\p{N}_-]/gu, "")
+    .slice(0, 24);
+
+export const normalizeTags = (tags) =>
+  [...new Set((Array.isArray(tags) ? tags : []).map(normalizeTag).filter(Boolean))].slice(0, 8);
+
 export const createTask = ({
   text,
   dueDate = "",
@@ -19,6 +30,7 @@ export const createTask = ({
   priority = "none",
   recurrence = "none",
   listId = "",
+  tags = [],
 }) => {
   const now = new Date().toISOString();
 
@@ -32,6 +44,7 @@ export const createTask = ({
     priority,
     recurrence: RECURRENCES.includes(recurrence) ? recurrence : "none",
     list_id: listId,
+    tags: normalizeTags(tags),
     subtasks: [],
     pinned: false,
     position: Date.now(),
@@ -51,6 +64,7 @@ export const normalizeTask = (task) => ({
   priority: PRIORITIES.includes(task.priority) ? task.priority : "none",
   recurrence: RECURRENCES.includes(task.recurrence) ? task.recurrence : "none",
   list_id: task.list_id || "",
+  tags: normalizeTags(task.tags),
   subtasks: Array.isArray(task.subtasks)
     ? task.subtasks.map((subtask, index) => ({
         id: String(subtask.id || `${task.id}-subtask-${index}`),
@@ -63,6 +77,9 @@ export const normalizeTask = (task) => ({
     ? Number(task.position)
     : new Date(task.created_at || Date.now()).getTime(),
   created_at: task.created_at || new Date().toISOString(),
+  completed_at: task.completed
+    ? task.completed_at || task.updated_at || task.created_at || new Date().toISOString()
+    : "",
   updated_at: task.updated_at || task.created_at || new Date().toISOString(),
 });
 
@@ -80,7 +97,7 @@ export const getViewTasks = (tasks, view, search = "") => {
   return tasks
     .filter((task) => {
       if (query) {
-        const haystack = `${task.text} ${task.notes}`.toLocaleLowerCase("ru");
+        const haystack = `${task.text} ${task.notes} ${task.tags.map((tag) => `#${tag}`).join(" ")}`.toLocaleLowerCase("ru");
         if (!haystack.includes(query)) return false;
       }
 

@@ -1193,6 +1193,8 @@ textarea:focus-visible {
 
 .commandButton { display: flex; height: 34px; align-items: center; gap: 9px; padding: 0 9px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--muted); cursor: pointer; font-size: 11px; }
 .commandButton kbd, .commandList kbd { padding: 2px 5px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface-subtle); color: var(--muted); font: inherit; font-size: 9px; }
+.topbarIconButton { display: grid; width: 34px; height: 34px; place-items: center; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--muted); cursor: pointer; }
+.topbarIconButton:hover { background: var(--surface-subtle); color: var(--text); }
 .syncIndicator { display: flex; min-width: 82px; align-items: center; gap: 6px; color: var(--muted); font-size: 10px; white-space: nowrap; }
 .syncIndicator.status-syncing svg { animation: spin 900ms linear infinite; }
 .syncIndicator.status-error { color: var(--danger); }
@@ -1201,9 +1203,15 @@ textarea:focus-visible {
 .pageHeaderActions { display: flex; align-items: center; gap: 9px; }
 .selectionToggle { display: flex; min-height: 34px; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--muted); cursor: pointer; font-size: 11px; }
 .selectionToggle.active { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.productivityPanel { display: block; margin-bottom: 22px; padding: 18px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); box-shadow: 0 5px 20px rgba(35, 35, 32, 0.05); }
+.analyticsGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.analyticsGrid > div { display: grid; min-height: 86px; align-content: center; gap: 7px; padding: 0 18px; border-radius: 7px; background: var(--surface-subtle); }
+.analyticsGrid strong { font-size: 30px; line-height: 1; font-variant-numeric: tabular-nums; }
+.analyticsGrid span { overflow: hidden; color: var(--muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
 
 .naturalPreview { grid-column: 2 / -1; display: flex; flex-wrap: wrap; gap: 7px; margin-top: -4px; color: var(--muted); font-size: 10px; }
 .naturalPreview span { display: flex; align-items: center; gap: 4px; padding: 3px 6px; border-radius: 4px; background: var(--surface-subtle); }
+.taskTag { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .sortableTask { position: relative; z-index: 0; }
 .sortableTask.dragging { z-index: 30; opacity: 0.72; }
@@ -1229,6 +1237,10 @@ textarea:focus-visible {
 
 .detailsGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
 .detailsListField { grid-column: 1 / -1; }
+.detailsTagsField { grid-column: 1 / -1; }
+.notificationPermission { width: calc(100% - 12px); min-height: 36px; margin: 6px; border-radius: 6px; background: var(--accent); color: #fff; cursor: pointer; font-size: 11px; font-weight: 700; }
+.notificationPermission:hover { background: var(--accent-dark); }
+.notificationHint { margin: 10px 14px 0; color: var(--muted); font-size: 11px; }
 .taskDetails { width: min(520px, 100%); }
 .subtaskEditor { display: grid; gap: 9px; }
 .subtaskHeader { display: flex; align-items: center; justify-content: space-between; color: var(--muted); font-size: 12px; font-weight: 650; }
@@ -2265,6 +2277,7 @@ body.dark .socialProfileHeader { box-shadow: 0 5px 20px rgba(0, 0, 0, 0.22); }
   .settingsSaveBar button { justify-content: center; }
   .settingsSavedToast { right: 14px; bottom: 14px; left: 14px; justify-content: center; }
   .notificationPanel { position: fixed; top: 58px; right: 14px; left: 14px; width: auto; }
+  .analyticsGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (prefers-reduced-motion: reduce) {

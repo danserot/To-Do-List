@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { CalendarDays, Check, Flag, ListChecks, Plus, Repeat2, Trash2, X } from "lucide-react";
-import { toDateKey } from "../domain/tasks";
+import { normalizeTags, toDateKey } from "../domain/tasks";
 
 const createSubtask = () => ({ id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`, text: "", completed: false });
 
@@ -35,6 +35,7 @@ export default function TaskDetails({ task, lists = [], onClose, onDelete, onUpd
       priority: draft.priority,
       recurrence: draft.recurrence,
       list_id: draft.list_id,
+      tags: normalizeTags(String(draft.tagsInput ?? draft.tags.join(", ")).split(/[,\s]+/)),
       subtasks: draft.subtasks.filter((subtask) => subtask.text.trim()),
     });
     onClose();
@@ -73,6 +74,7 @@ export default function TaskDetails({ task, lists = [], onClose, onDelete, onUpd
             <label className="fieldGroup fieldWithIcon"><span><Flag size={17} />Приоритет</span><select value={draft.priority} onChange={(event) => setDraft({ ...draft, priority: event.target.value })}><option value="none">Без приоритета</option><option value="low">Низкий</option><option value="medium">Средний</option><option value="high">Высокий</option></select></label>
             <label className="fieldGroup fieldWithIcon"><span><Repeat2 size={17} />Повтор</span><select value={draft.recurrence} onChange={(event) => setDraft({ ...draft, recurrence: event.target.value })}><option value="none">Не повторять</option><option value="daily">Каждый день</option><option value="weekdays">По будням</option><option value="weekly">Каждую неделю</option></select></label>
             <label className="fieldGroup detailsListField"><span>Список</span><select value={draft.list_id} onChange={(event) => setDraft({ ...draft, list_id: event.target.value })}><option value="">Без списка</option>{lists.map((list) => <option key={list.id} value={list.id}>{list.name}</option>)}</select></label>
+            <label className="fieldGroup detailsTagsField"><span>Метки</span><input placeholder="дом, работа, срочно" value={draft.tagsInput ?? draft.tags.join(", ")} onChange={(event) => setDraft({ ...draft, tagsInput: event.target.value })} /></label>
           </div>
         </div>
         <footer><button className="deleteDetailButton" onClick={onDelete}><Trash2 size={17} />Удалить</button><div><button className="secondaryButton" onClick={onClose}>Отмена</button><button className="primaryButton" disabled={!draft.text.trim()} onClick={save}>Сохранить</button></div></footer>
