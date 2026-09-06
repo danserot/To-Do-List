@@ -7,11 +7,19 @@ export const TASK_VIEWS = {
 };
 
 export const PRIORITIES = ["none", "low", "medium", "high"];
+export const RECURRENCES = ["none", "daily", "weekdays", "weekly"];
 
 const createId = () =>
   `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 
-export const createTask = ({ text, dueDate = "", priority = "none" }) => {
+export const createTask = ({
+  text,
+  dueDate = "",
+  dueTime = "",
+  priority = "none",
+  recurrence = "none",
+  listId = "",
+}) => {
   const now = new Date().toISOString();
 
   return {
@@ -20,7 +28,13 @@ export const createTask = ({ text, dueDate = "", priority = "none" }) => {
     notes: "",
     completed: false,
     due_date: dueDate,
+    due_time: dueTime,
     priority,
+    recurrence: RECURRENCES.includes(recurrence) ? recurrence : "none",
+    list_id: listId,
+    subtasks: [],
+    pinned: false,
+    position: Date.now(),
     created_at: now,
     updated_at: now,
   };
@@ -33,7 +47,21 @@ export const normalizeTask = (task) => ({
   notes: task.notes || "",
   completed: Boolean(task.completed),
   due_date: task.due_date || "",
+  due_time: task.due_time || "",
   priority: PRIORITIES.includes(task.priority) ? task.priority : "none",
+  recurrence: RECURRENCES.includes(task.recurrence) ? task.recurrence : "none",
+  list_id: task.list_id || "",
+  subtasks: Array.isArray(task.subtasks)
+    ? task.subtasks.map((subtask, index) => ({
+        id: String(subtask.id || `${task.id}-subtask-${index}`),
+        text: String(subtask.text || "").trim().slice(0, 160),
+        completed: Boolean(subtask.completed),
+      })).filter((subtask) => subtask.text)
+    : [],
+  pinned: Boolean(task.pinned),
+  position: Number.isFinite(Number(task.position))
+    ? Number(task.position)
+    : new Date(task.created_at || Date.now()).getTime(),
   created_at: task.created_at || new Date().toISOString(),
   updated_at: task.updated_at || task.created_at || new Date().toISOString(),
 });
@@ -61,9 +89,12 @@ export const getViewTasks = (tasks, view, search = "") => {
       if (view === TASK_VIEWS.today) return task.due_date === today;
       if (view === TASK_VIEWS.upcoming) return task.due_date > today;
       if (view === TASK_VIEWS.important) return task.priority === "high";
+      if (view.startsWith("list:")) return task.list_id === view.slice(5);
       return true;
     })
     .sort((a, b) => {
+      if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+      if (a.position !== b.position) return a.position - b.position;
       const priorityOrder = { high: 0, medium: 1, low: 2, none: 3 };
       const byPriority = priorityOrder[a.priority] - priorityOrder[b.priority];
       if (byPriority !== 0) return byPriority;
@@ -73,6 +104,35 @@ export const getViewTasks = (tasks, view, search = "") => {
       if (b.due_date) return 1;
       return b.created_at.localeCompare(a.created_at);
     });
+};
+
+export const getNextRecurringDate = (dateKey, recurrence) => {
+  if (!dateKey || recurrence === "none") return "";
+  const date = new Date(`${dateKey}T12:00:00`);
+  if (recurrence === "weekly") date.setDate(date.getDate() + 7);
+  else {
+    date.setDate(date.getDate() + 1);
+    if (recurrence === "weekdays") {
+      while (date.getDay() === 0 || date.getDay() === 6) {
+        date.setDate(date.getDate() + 1);
+      }
+    }
+  }
+  return toDateKey(date);
+};
+
+export const getSnoozeDate = (option, now = new Date()) => {
+  const date = new Date(now);
+  if (option === "tomorrow") date.setDate(date.getDate() + 1);
+  if (option === "weekend") {
+    const daysUntilSaturday = (6 - date.getDay() + 7) % 7 || 7;
+    date.setDate(date.getDate() + daysUntilSaturday);
+  }
+  if (option === "nextWeek") {
+    const daysUntilMonday = (8 - date.getDay()) % 7 || 7;
+    date.setDate(date.getDate() + daysUntilMonday);
+  }
+  return toDateKey(date);
 };
 
 export const getTaskCounts = (tasks) => {

@@ -1,6 +1,10 @@
 import { supabase } from "../lib/supabase";
 import { isOfflineUser } from "../lib/offlineAuth";
-import { createTask, normalizeTask } from "../domain/tasks";
+import {
+  createTask,
+  getNextRecurringDate,
+  normalizeTask,
+} from "../domain/tasks";
 import { storage } from "../platform/storage";
 import {
   cloudRepository,
@@ -191,11 +195,41 @@ export const taskRepository = {
 
   async update(user, id, changes) {
     const updatedAt = new Date().toISOString();
-    const tasks = readTasks(user).map((task) =>
+    const previousTask = readTasks(user).find((task) => task.id === id);
+    let tasks = readTasks(user).map((task) =>
       task.id === id
         ? normalizeTask({ ...task, ...changes, updated_at: updatedAt })
         : task,
     );
+
+    if (
+      previousTask &&
+      !previousTask.completed &&
+      changes.completed === true &&
+      previousTask.recurrence !== "none" &&
+      previousTask.due_date
+    ) {
+      const nextTask = normalizeTask({
+        ...createTask({
+          text: previousTask.text,
+          dueDate: getNextRecurringDate(
+            previousTask.due_date,
+            previousTask.recurrence,
+          ),
+          dueTime: previousTask.due_time,
+          priority: previousTask.priority,
+          recurrence: previousTask.recurrence,
+          listId: previousTask.list_id,
+        }),
+        notes: previousTask.notes,
+        subtasks: previousTask.subtasks.map((subtask) => ({
+          ...subtask,
+          id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+          completed: false,
+        })),
+      });
+      tasks = [nextTask, ...tasks];
+    }
     writeTasks(user, tasks);
 
     const task = tasks.find((item) => item.id === id);
@@ -266,5 +300,49 @@ export const taskRepository = {
   restore(user, task) {
     const tasks = [normalizeTask(task), ...readTasks(user)];
     return writeTasks(user, tasks);
+  },
+
+  replace(user, task) {
+    const normalized = normalizeTask(task);
+    const tasks = readTasks(user).map((item) =>
+      item.id === normalized.id ? normalized : item,
+    );
+    writeTasks(user, tasks);
+    if (isCloudSyncEnabled(user)) {
+      cloudRepository.upsertTask(user, normalized).catch(() => {});
+    }
+    return tasks;
+  },
+
+  replaceAll(user, snapshot) {
+    const previous = readTasks(user);
+    const tasks = snapshot.map(normalizeTask);
+    writeTasks(user, tasks);
+    if (isCloudSyncEnabled(user)) {
+      const restoredIds = new Set(tasks.map((task) => task.id));
+      Promise.allSettled([
+        ...tasks.map((task) => cloudRepository.upsertTask(user, task)),
+        ...previous.filter((task) => !restoredIds.has(task.id)).map((task) => cloudRepository.deleteTask(user, task)),
+      ]);
+    }
+    return tasks;
+  },
+
+  reorder(user, orderedIds) {
+    const positions = new Map(orderedIds.map((id, index) => [id, index]));
+    const tasks = readTasks(user).map((task) =>
+      positions.has(task.id)
+        ? normalizeTask({ ...task, position: positions.get(task.id) })
+        : task,
+    );
+    writeTasks(user, tasks);
+    if (isCloudSyncEnabled(user)) {
+      Promise.allSettled(
+        tasks
+          .filter((task) => positions.has(task.id))
+          .map((task) => cloudRepository.upsertTask(user, task)),
+      );
+    }
+    return tasks;
   },
 };

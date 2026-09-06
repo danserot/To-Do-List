@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState } from "react";
-import { AlertCircle, CalendarDays, Flag, Plus } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { AlertCircle, CalendarDays, Clock3, Flag, Plus, Repeat2 } from "lucide-react";
+import { parseNaturalTaskInput } from "../domain/naturalLanguage";
 
 export default function QuickAdd({
   defaultDueDate = "",
   defaultPriority = "none",
+  listId = "",
   onAdd,
 }) {
   const [text, setText] = useState("");
@@ -12,6 +14,7 @@ export default function QuickAdd({
   const [showWarning, setShowWarning] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const inputRef = useRef(null);
+  const parsedInput = useMemo(() => parseNaturalTaskInput(text), [text]);
   const updateDueDate = (event) => setDueDate(event.currentTarget.value);
 
   useEffect(() => setDueDate(defaultDueDate), [defaultDueDate]);
@@ -53,7 +56,14 @@ export default function QuickAdd({
 
     setSubmitting(true);
     try {
-      await onAdd({ text, dueDate, priority });
+      await onAdd({
+        text: parsedInput.text || text.trim(),
+        dueDate: parsedInput.dueDate || dueDate,
+        dueTime: parsedInput.dueTime,
+        recurrence: parsedInput.recurrence,
+        priority,
+        listId,
+      });
       setText("");
       setPriority(defaultPriority);
       inputRef.current?.focus();
@@ -123,6 +133,14 @@ export default function QuickAdd({
           <Plus size={18} /><span>{submitting ? "Добавляем" : "Добавить"}</span>
         </button>
       </span>
+
+      {text.trim() && (parsedInput.dueDate || parsedInput.dueTime || parsedInput.recurrence !== "none") && (
+        <div className="naturalPreview" role="status">
+          {parsedInput.dueDate && <span><CalendarDays size={13} />{parsedInput.dueDate}</span>}
+          {parsedInput.dueTime && <span><Clock3 size={13} />{parsedInput.dueTime}</span>}
+          {parsedInput.recurrence !== "none" && <span><Repeat2 size={13} />Повтор</span>}
+        </div>
+      )}
 
       {showWarning && (
         <div className="quickWarningToast" role="alert">

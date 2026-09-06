@@ -47,7 +47,13 @@ create table if not exists public.focus_tasks (
   notes text not null default '',
   completed boolean not null default false,
   due_date date,
+  due_time time,
   priority text not null default 'none' check (priority in ('none', 'low', 'medium', 'high')),
+  recurrence text not null default 'none' check (recurrence in ('none', 'daily', 'weekdays', 'weekly')),
+  list_id text,
+  subtasks jsonb not null default '[]'::jsonb,
+  pinned boolean not null default false,
+  position bigint not null default 0,
   created_at timestamptz not null default timezone('utc', now()),
   updated_at timestamptz not null default timezone('utc', now()),
   unique (user_id, client_id)
@@ -55,6 +61,18 @@ create table if not exists public.focus_tasks (
 
 create index if not exists focus_tasks_user_due_idx
 on public.focus_tasks (user_id, completed, due_date);
+
+create table if not exists public.focus_lists (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  client_id text not null,
+  name text not null check (char_length(name) between 1 and 40),
+  color text not null default 'coral' check (color in ('coral', 'green', 'blue', 'yellow')),
+  position integer not null default 0,
+  created_at timestamptz not null default timezone('utc', now()),
+  updated_at timestamptz not null default timezone('utc', now()),
+  unique (user_id, client_id)
+);
 
 create table if not exists public.focus_quick_tasks (
   id uuid primary key default gen_random_uuid(),
@@ -73,7 +91,7 @@ do $$
 declare
   table_name text;
 begin
-  foreach table_name in array array['focus_profiles', 'focus_settings', 'focus_tasks', 'focus_quick_tasks']
+  foreach table_name in array array['focus_profiles', 'focus_settings', 'focus_tasks', 'focus_lists', 'focus_quick_tasks']
   loop
     execute format('alter table public.%I enable row level security', table_name);
     execute format('drop policy if exists "Users manage own rows" on public.%I', table_name);

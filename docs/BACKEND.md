@@ -6,7 +6,7 @@ row-level security and file storage.
 
 ## What is prepared
 
-- `supabase/migrations/202609010001_focus_schema.sql` creates tables for tasks,
+- `supabase/migrations` contains ordered migrations for tasks, custom lists,
   profiles, application settings and quick-task templates.
 - Every table has row-level security. An authenticated user can access only
   rows whose `user_id` matches `auth.uid()`.

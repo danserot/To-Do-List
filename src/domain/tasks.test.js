@@ -1,11 +1,14 @@
 import {
   createTask,
   getTaskCounts,
+  getNextRecurringDate,
+  getSnoozeDate,
   getViewTasks,
   normalizeTask,
   TASK_VIEWS,
   toDateKey,
 } from "./tasks";
+import { parseNaturalTaskInput } from "./naturalLanguage";
 
 describe("task domain", () => {
   it("creates a normalized active task", () => {
@@ -39,5 +42,34 @@ describe("task domain", () => {
       important: 1,
       completed: 1,
     });
+  });
+
+  it("normalizes advanced task fields without breaking old tasks", () => {
+    const task = normalizeTask({
+      id: "advanced",
+      text: "Подготовить релиз",
+      recurrence: "weekdays",
+      pinned: true,
+      subtasks: [{ id: "one", text: "Проверить сборку", completed: true }],
+    });
+    expect(task.recurrence).toBe("weekdays");
+    expect(task.pinned).toBe(true);
+    expect(task.subtasks).toHaveLength(1);
+  });
+
+  it("calculates recurrence and snooze dates", () => {
+    expect(getNextRecurringDate("2026-09-04", "weekdays")).toBe("2026-09-07");
+    expect(getNextRecurringDate("2026-09-01", "weekly")).toBe("2026-09-08");
+    expect(getSnoozeDate("tomorrow", new Date("2026-09-01T12:00:00"))).toBe("2026-09-02");
+  });
+
+  it("parses a Russian natural-language due date", () => {
+    const parsed = parseNaturalTaskInput(
+      "Позвонить завтра в 18:00",
+      new Date("2026-09-01T10:00:00"),
+    );
+    expect(parsed.text).toBe("Позвонить");
+    expect(parsed.dueDate).toBe("2026-09-02");
+    expect(parsed.dueTime).toBe("18:00");
   });
 });
